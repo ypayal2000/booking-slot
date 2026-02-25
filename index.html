@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Slot Booking</title>
+</head>
+<body>
+
+    <h2>Book a Slot</h2>
+
+    <form id="bookingForm">
+        <input type="text" id="slot_id" placeholder="Slot ID" required><br><br>
+        <input type="datetime-local" id="start_time" required><br><br>
+        <input type="datetime-local" id="end_time" required><br><br>
+        <input type="text" id="user_id" placeholder="User ID" required><br><br>
+
+        <button type="submit">Book Slot</button>
+    </form>
+
+    <h3 id="message"></h3>
+
+    <hr>
+
+    <button onclick="getSlots()">View All Slots</button>
+    <pre id="slots"></pre>
+
+<script>
+const API_URL = "http://127.0.0.1:5000";
+
+document.getElementById("bookingForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const slot_id = document.getElementById("slot_id").value;
+    const start_time = document.getElementById("start_time").value;
+    const end_time = document.getElementById("end_time").value;
+    const user_id = document.getElementById("user_id").value;
+
+    const response = await fetch(`${API_URL}/book`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            slot_id,
+            start_time,
+            end_time,
+            user_id
+        })
+    });
+
+    const data = await response.json();
+    document.getElementById("message").innerText = data.message || data.error;
+});
+
+async function getSlots() {
+    const response = await fetch(`${API_URL}/slots`);
+    const data = await response.json();
+
+    document.getElementById("slots").innerText = JSON.stringify(data, null, 2);
+}
+</script>
+
+</body>
+</html>
