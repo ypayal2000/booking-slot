@@ -1,12 +1,30 @@
 from flask import Flask, request, jsonify
 from datetime import datetime
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 booked_slots = {}
 
 def time_conflict(start1, end1 , start2 , end2):
     return max(start1, start2) < min(end1, end2)
+
+def generate_daily_slots():
+    slots={}
+    start_hour = 10
+    end_hour = 18
+    for i in range(start_hour, end_hour):
+        slot_id = f"slot{i}"
+        slots[slot_id] = {
+             "start_time": f"{i:02d}:00",
+            "end_time": f"{i+1:02d}:00",
+            "booked": False,
+            "user_id": None
+        }
+    return slots
+
+daily_slots = generate_daily_slots()
 
 @app.route('/book', methods=['POST'])
 def book_slot():
@@ -29,25 +47,26 @@ def book_slot():
     if start_time >= end_time:
         return jsonify({'error':'start time must be before end time'}), 400
     
-    if slot_id in booked_slots:
+    if slot_id not in daily_slots:
+        return jsonify({'error':'invalid slot id'}), 400
+    
+    if daily_slots[slot_id]["booked"]:
         return jsonify({'status':'booked', 'message':'slot already booked'}), 409
     
-    for existing_slot in booked_slots.values():
-        if time_conflict(start_time, end_time, existing_slot["start_time"], existing_slot["end_time"]):
-            return jsonify({'status':'booked', 'messsage':'time conflict with another booking'}), 409
+    daily_slots[slot_id]["booked"] = True
+    daily_slots[slot_id]["user_id"] = user_id
         
-    booked_slots[slot_id] = {
-        "start_time": start_time,
-        "end_time": end_time,
-        "user_id": user_id
-    }
-
-    return jsonify({'status':'available', 'message':'slot sucessfully booked'}), 201
+    return jsonify({
+        'status':'available',
+        'message': f'slot {slot_id} successfully booked',
+        'start_time': daily_slots[slot_id]["start_time"],
+        'end_time': daily_slots[slot_id]["end_time"]
+    }), 201
 
 @app.route('/slots', methods=["GET"])
 def get_slots():
     response={}
-    for slot_id, details in booked_slots.items():
+    for slot_id, details in daily_slots.items():
         response[slot_id]= {
             "start_time": details["start_time"].isoformat(),
             "end_time": details["end_time"].isoformat(),
